@@ -1,9 +1,14 @@
-var express = require('express');
-var router = express.Router();
+import { Router } from 'express';
+const router = Router();
+//Swagger imports
+import swaggerUI from 'swagger-ui-express';
+//import swaggerDocument from '../docs/openapi.json' with {type: "json"};
+const { default: swaggerDocument } = await import('../docs/openapi.json', {
+  with: {type: "json"},
+  }
+);
 
-/* GET home page. */
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
-});
+/* Swagger docs on "/" route */
+router.use('/', swaggerUI.serve, swaggerUI.setup(swaggerDocument));
 
-module.exports = router;
+export default router;

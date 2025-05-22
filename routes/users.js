@@ -91,10 +91,53 @@ router.post('/login', async (req, res, next) => {
 });
 
 // user/refresh
+router.post('/refresh', async (req, res, next) => {
+  // Check for bearer/refresh in body
+  // refresh
+});
 
 // user/logout
+router.post('/logout', async (req, res, next) => {
+  // Check for bearer
+  // Invalidate
+});
 
 // user/:mail/profil GET
-// user/:mail/profil PUT
+router.get("/:mail/profile", async (req, res, next) => {
+  try {
+    // Check mail parameter
+
+    // Check for user
+
+    // Check for authorization
+
+    // Response for when authorized
+
+    // Response for when not authorized
+  } catch (error) {
+    res.json({
+      Error: true,
+      Message:`Profile error: ${error.message}`,
+    });
+  }
+});
+// user/:mail/profile PUT
+router.put("/:mail/profile", async (req, res, next) => {
+  try {
+    // Check for authorization
+
+    // Check user being updated is the same as being authorized
+
+    // Check body parameters - valid and all present
+
+    // Response with updated
+
+  } catch (error) {
+    res.json({
+      Error: true,
+      Message:`Error during profile update: ${error.message}`,
+    });
+  }
+});
 
 export default router;

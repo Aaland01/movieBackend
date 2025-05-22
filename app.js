@@ -7,8 +7,18 @@ import logger from 'morgan';
 // Routers
 import indexRouter from './routes/index.js';
 import usersRouter from './routes/users.js';
+import moviesRouter from './routes/movies.js';
+import peopleRouter from './routes/people.js';
+
+// Knex
+import knexConfig from './knexfile.js'
+import knexImport from 'knex';
+
+// Cors
+import cors from 'cors';
 
 const app = express();
+const knex = knexImport(knexConfig);
 
 // Express-generator standard
 app.use(logger('dev'));
@@ -17,7 +27,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-app.use('/users', usersRouter);
+// Cors
+app.use(cors());
+
+// Init database with knex BEFORE it's used elsewhere
+app.use( (req, res, next) => {
+  req.db = knex;
+  next();
+})
+
+app.use('/user', usersRouter);
+app.use('/movies', moviesRouter);
+app.use('/people', peopleRouter);
 app.use('/', indexRouter);
 
 // catch 404 and forward to error handler

@@ -83,7 +83,12 @@ router.post('/login', async (req, res, next) => {
         const refresh_exp = Math.floor(Date.now() / 1000) + refresh_expires_in;
         
         const bearerToken = jwt.sign({exp: bearer_exp}, JWT_SECRET)
-        const refreshToken = jwt.sign({exp: refresh_exp}, JWT_SECRET)
+        const refreshToken = jwt.sign({exp: refresh_exp, email: loginDetails.email}, JWT_SECRET)
+
+        // Storing refresh
+        await req.db('users')
+          .where({"email": loginDetails.email})
+          .update({"refreshToken": refreshToken});
 
         return res.status(200).json({
           "BearerToken": {
@@ -113,7 +118,20 @@ router.post('/refresh', async (req, res, next) => {
   };
 
   try {
+
+    // Decoding and verifying expiry:
     const decodedJWT = jwt.verify(refreshToken, JWT_SECRET);
+
+    // Checking for refresh
+    const user = await req.db('users')
+      .where({email: decodedJWT.email, refreshToken})
+      .select();
+    
+    if (user.length < 1) {
+      const err = new Error("");
+      err.name = 'TokenExpiredError';
+      throw err;
+    }
     
     // All good, generating new tokens with default expiry: 
     const bearer_expires_in = 60 * 10; // 600 ~ 10min
@@ -122,7 +140,11 @@ router.post('/refresh', async (req, res, next) => {
     const refresh_exp = Math.floor(Date.now() / 1000) + refresh_expires_in;
     
     const newBearerToken = jwt.sign({exp: bearer_exp}, JWT_SECRET)
-    const newRefreshToken = jwt.sign({exp: refresh_exp}, JWT_SECRET)
+    const newRefreshToken = jwt.sign({exp: refresh_exp, email: decodedJWT.email}, JWT_SECRET)
+
+    await req.db('users')
+      .where({email: decodedJWT.email})
+      .update({refreshToken: newRefreshToken});
 
     return res.status(200).json({
       "BearerToken": {
@@ -147,12 +169,42 @@ router.post('/refresh', async (req, res, next) => {
 
 // user/logout
 router.post('/logout', async (req, res, next) => {
-  // Check for bearer
-  // Invalidate
+  // Check for refresh in body
+  const refreshToken = req.body.refreshToken;
+  if (!refreshToken) {
+    return res.status(400).json({error: true, message: "Request body incomplete, refresh token required"})
+  };
+
+  try{
+    const validate = jwt.verify(refreshToken, JWT_SECRET);
+    // Checking for token to remove
+    const user = await req.db('users')
+      .where({email: validate.email, refreshToken})
+      .select();
+    
+    if (user.length === 0) {
+      const err = new Error("");
+      err.name = 'TokenExpiredError';
+      throw err;
+    };
+    
+    await req.db('users')
+      .where({email: validate.email, refreshToken})
+      .update({refreshToken: null});
+    
+    return res.status(200).json({error: false, message: "Token successfully invalidated"});
+
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({error: true, message: 'JWT token has expired'});
+    } else {
+      return res.status(500).json({error: true, message: `Refresh Error: ${error}`});
+    }
+  }
 });
 
 // user/:mail/profil GET
-router.get("/:mail/profile", async (req, res, next) => {
+router.get("/:mail/profile", (req, res, next) => {
   try {
     // Check mail parameter
 

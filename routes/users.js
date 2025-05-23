@@ -2,9 +2,12 @@ import { Router } from 'express';
 // JWT dependencies
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+// Dotenv
+import dotenv from 'dotenv';
+dotenv.config();
+
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET;
-
 
 // user/register
 router.post('/register', async (req, res, next) => {

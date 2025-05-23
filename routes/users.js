@@ -106,16 +106,43 @@ router.post('/login', async (req, res, next) => {
 
 // user/refresh
 router.post('/refresh', async (req, res, next) => {
-  // Check for bearer/refresh in body
+  // Check for refresh in body
   const refreshToken = req.body.refreshToken;
   if (!refreshToken) {
     return res.status(400).json({error: true, message: "Request body incomplete, refresh token required"})
   };
-  
-  if (expired) {
-    return res.status(401).json({error: true, message: "JWT token has expired"})
+
+  try {
+    const decodedJWT = jwt.verify(refreshToken, JWT_SECRET);
+    
+    // All good, generating new tokens with default expiry: 
+    const bearer_expires_in = 60 * 10; // 600 ~ 10min
+    const refresh_expires_in = 60 * 60 * 24; // 86400 ~ 24h
+    const bearer_exp = Math.floor(Date.now() / 1000) + bearer_expires_in;
+    const refresh_exp = Math.floor(Date.now() / 1000) + refresh_expires_in;
+    
+    const newBearerToken = jwt.sign({exp: bearer_exp}, JWT_SECRET)
+    const newRefreshToken = jwt.sign({exp: refresh_exp}, JWT_SECRET)
+
+    return res.status(200).json({
+      "BearerToken": {
+        token: newBearerToken,
+        token_type: "Bearer",
+        expires_in: bearer_expires_in,
+      },
+      "RefreshToken": {
+        token: newRefreshToken,
+        token_type: "Refresh",
+        expires_in: refresh_expires_in,
+      },
+    });
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({error: true, message: 'JWT token has expired'});
+    } else {
+      return res.status(500).json({error: true, message: `Refresh Error: ${error.message}`});
+    }
   }
-  // refresh
 });
 
 // user/logout

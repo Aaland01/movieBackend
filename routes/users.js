@@ -11,7 +11,7 @@ router.post('/register', async (req, res, next) => {
   try {
     // Check if pass and email in request body
     if (!req.body.email || !req.body.password){
-      res.status(400).json({error: "True", message:"Request body incomplete - missing email or password parameters"})
+      res.status(400).json({error: "True", message:"Request body incomplete, both email and password are required"})
       return;
     }
 
@@ -22,14 +22,14 @@ router.post('/register', async (req, res, next) => {
       .where({"email": newUser.email})
       .select();
     if (existingUsers.length > 0) {
-      return res.status(400).json({error: "True", message: "User already exists with that email"})
+      return res.status(409).json({error: "True", message: "User already exists"})
 
     } else {
       // User doesnt exist, can register
       const saltRounds = 10;
       newUser.hash = bcrypt.hashSync(newUser.hash, saltRounds);
       await req.db('users').insert(newUser);
-      return res.status(201).json({error: "False", message: "User succesfully registered"});
+      return res.status(201).json({message: "User succesfully registered"});
     }
   } catch (error) {
     return res.status(500).json({error: "True", message:`Error during registration: ${error.message}`})
@@ -41,7 +41,7 @@ router.post('/login', async (req, res, next) => {
   try{
     // Check if pass and email in request body
     if (!req.body.email || !req.body.password){
-      return res.status(400).json({error: "True", message:"Request body incomplete - missing email or password parameters"})
+      return res.status(400).json({error: "True", message:"Request body incomplete, both email and password are required"})
     } 
     const loginDetails = {"email": req.body.email.toLowerCase(), "hash": req.body.password}
 
@@ -51,13 +51,13 @@ router.post('/login', async (req, res, next) => {
       .select();
     
     if (existingUser.length === 0) {
-      return res.status(400).json({error: "True", message: "Incorrect email or password"})
+      return res.status(401).json({error: "True", message: "Incorrect email or password"})
     } else {
       // User found - comparing details
       const databaseDetails = existingUser[0]
       const match = bcrypt.compareSync(loginDetails.hash, databaseDetails.hash);
       if (!match) {
-        return res.status(400).json({error: "True", message: "Incorrect email or password"})
+        return res.status(401).json({error: "True", message: "Incorrect email or password"})
       } else {
         // Returning Bearer and Refresh token
         // Standard expiry:
@@ -104,6 +104,14 @@ router.post('/login', async (req, res, next) => {
 // user/refresh
 router.post('/refresh', async (req, res, next) => {
   // Check for bearer/refresh in body
+  const refreshToken = req.body.refreshToken;
+  if (!refreshToken) {
+    return res.status(400).json({error: true, message: "Request body incomplete, refresh token required"})
+  };
+  
+  if (expired) {
+    return res.status(401).json({error: true, message: "JWT token has expired"})
+  }
   // refresh
 });
 

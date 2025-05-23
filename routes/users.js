@@ -5,9 +5,6 @@ import bcrypt from 'bcrypt';
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-
 
 // user/register
 router.post('/register', async (req, res, next) => {
@@ -63,9 +60,23 @@ router.post('/login', async (req, res, next) => {
         return res.status(400).json({error: "True", message: "Incorrect email or password"})
       } else {
         // Returning Bearer and Refresh token
-        const bearer_expires_in = 60 * 10; // 600 ~ 10min
+        // Standard expiry:
+        let bearer_expires_in = 60 * 10; // 600 ~ 10min
+        let refresh_expires_in = 60 * 60 * 24; // 86400 ~ 24h
+
+        // Check LongExpiry
+        if (req.body.longExpiry) {
+          bearer_expires_in = 60 * 60 * 24 * 365; // 1 year
+          refresh_expires_in = 60 * 60 * 24 * 365; // 1 year
+        // Dev expires in seconds bearer
+        } if (req.body.bearerExpiresInSeconds) {
+          bearer_expires_in = req.body.bearerExpiresInSeconds; // 600 ~ 10min
+        // Dev expires in seconds refresh
+        } if (req.body.refreshExpiresInSeconds) {
+          refresh_expires_in = req.body.refreshExpiresInSeconds; // 600 ~ 10min
+        } 
+        
         const bearer_exp = Math.floor(Date.now() / 1000) + bearer_expires_in;
-        const refresh_expires_in = 60 * 60 * 24; // 86400 ~ 24h
         const refresh_exp = Math.floor(Date.now() / 1000) + refresh_expires_in;
         
         const bearerToken = jwt.sign({exp: bearer_exp}, JWT_SECRET)

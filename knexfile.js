@@ -6,7 +6,8 @@ const knex = {
       database: 'movies',
       // TODO Need to change user to root before delivery
       user: 'dev',
-      password: 'Cab230!'
+      password: 'Cab230!',
+      dateStrings: true
     }
 };
 

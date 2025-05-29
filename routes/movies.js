@@ -15,10 +15,15 @@ router.get('/search', async (req, res, next) => {
 
     // Change values if page argument is provided
     if (page) {
+      if (!/^[0-9]+$/.test(page)) {
+        return res.status(400).json({error: true, message: "Invalid page format. page must be a number."});
+      }
       page = parseInt(page)
-      offset = perPage * (page - 1)
-      nextPage = page + 1;
-      prevPage = page - 1;
+      if (page != 1) {
+        offset = perPage * (page - 1)
+        nextPage = page + 1;
+        prevPage = page - 1;
+      };
     }
     else page = 1;
 

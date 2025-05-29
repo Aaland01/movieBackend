@@ -27,7 +27,12 @@ router.get('/search', async (req, res, next) => {
     let titleFilter = req.query.title;
     let yearFilter = req.query.year;
     
-    if (yearFilter) totalQuery.where({year: yearFilter});
+    if (yearFilter) {
+      if (!yearFilter.test(/^[0-9]{4}$/)) {
+        return res.status(400).json({error: true, message: "Invalid year format. Format must be yyyy."});
+      }
+      totalQuery.where({year: yearFilter});
+    }
     if (titleFilter) totalQuery.whereILike('primaryTitle', `%${titleFilter}%`);
 
     const moviesQuery = await totalQuery

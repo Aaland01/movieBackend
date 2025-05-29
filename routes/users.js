@@ -93,12 +93,12 @@ router.post('/login', async (req, res, next) => {
           .update({"refreshToken": refreshToken});
 
         return res.status(200).json({
-          "BearerToken": {
+          "bearerToken": {
             token: bearerToken,
             token_type: "Bearer",
             expires_in: bearer_expires_in,
           },
-          "RefreshToken": {
+          "refreshToken": {
             token: refreshToken,
             token_type: "Refresh",
             expires_in: refresh_expires_in,
@@ -149,12 +149,12 @@ router.post('/refresh', async (req, res, next) => {
       .update({refreshToken: newRefreshToken});
 
     return res.status(200).json({
-      "BearerToken": {
+      "bearerToken": {
         token: newBearerToken,
         token_type: "Bearer",
         expires_in: bearer_expires_in,
       },
-      "RefreshToken": {
+      "refreshToken": {
         token: newRefreshToken,
         token_type: "Refresh",
         expires_in: refresh_expires_in,
@@ -218,16 +218,24 @@ router.get("/:email/profile", noParams, async (req, res, next) => {
       .first("email", "firstName", "lastName", "dob", "address");
 
     // No user found - abort
-    if (!profileQuery) return res.status(404).json({
-      error: true,
-      message: "User not found"
-    });
+    if (!profileQuery) return res.status(404).json({error: true,message: "User not found"});
     
     // Check for authorization
     const bearerToken = extractedBearer( req.headers.authorization );
-    if (!bearerToken) {
 
-      // response for when not authorized
+    if (!bearerToken) {
+      // response for when not authenticated
+      return res.status(200).json({
+        "email": profileQuery.email,
+        "firstName": profileQuery.firstName,
+        "lastName": profileQuery.lastName
+      });
+    }
+
+    const decodedJWT = jwt.verify(bearerToken, JWT_SECRET);
+
+    if (decodedJWT.email != providedEmail) {
+      // response for when not the same user
       return res.status(200).json({
         "email": profileQuery.email,
         "firstName": profileQuery.firstName,
@@ -235,9 +243,6 @@ router.get("/:email/profile", noParams, async (req, res, next) => {
       });
 
     } else {
-
-      const decodedJWT = jwt.verify(bearerToken, JWT_SECRET);
-
       // Response for when authorized
       return res.status(200).json({
         "email": profileQuery.email,
@@ -248,7 +253,6 @@ router.get("/:email/profile", noParams, async (req, res, next) => {
       })  
     }
 
-    // Response for when not authorized
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({error: true, message: 'JWT token has expired'});
@@ -260,7 +264,7 @@ router.get("/:email/profile", noParams, async (req, res, next) => {
 
 
 // user/:mail/profile PUT
-router.put("/:email/profile", authMiddleware, async (req, res, next) => {
+router.put("/:email/profile", authMiddleware(true), async (req, res, next) => {
   try {
        // Get parameters
     const providedEmail = req.params.email;

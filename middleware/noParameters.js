@@ -6,6 +6,7 @@ const parameterCheck = (req, res, next) => {
         message:`Invalid query parameters: ${Object.keys(req.query)[0]}. Query parameters are not permitted.`
       })
     }
+    next();
 }
 
 export default parameterCheck;

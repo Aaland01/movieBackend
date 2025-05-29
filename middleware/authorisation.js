@@ -1,4 +1,7 @@
 import jwt from 'jsonwebtoken';
+// Dotenv
+import dotenv from 'dotenv';
+dotenv.config();
 const JWT_SECRET = process.env.JWT_SECRET;
 
 /**
@@ -38,7 +41,8 @@ const authorize = (req, res, next) => {
     } else if (error.message === 'jwt malformed') {
       return res.status(401).json({error: true, message: 'Authorization header is malformed'});
     } else if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({error: true, message: 'Invalid JWT token'})
+      return res.status(401).json({error: true, message:  `Invalid JWT token:${error.message}`})
+      // return res.status(401).json({error: true, message:  'Invalid JWT token:'})
     } else {
       return res.status(500).json({error: true, message: `Authentication Error: ${error.message}`});
     }

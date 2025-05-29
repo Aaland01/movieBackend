@@ -1,23 +1,35 @@
 import jwt from 'jsonwebtoken';
 const JWT_SECRET = process.env.JWT_SECRET;
 
+/**
+ * 
+ * @param {string} authHeader Header parameter supplied in the request 
+ * @returns formatted bearerToken if valid, false if not. 
+ */
+const extractedBearer = (authHeader) => {
+  
+  if(!authHeader) return false;
+  
+  // Checking for Bearer declaration
+  if(!authHeader.startsWith("Bearer ")) return false;
+  const bearerToken = authHeader.slice(7);
+
+  // Is the token present after the "Bearer" caption
+  if (!bearerToken) return false;
+  
+  return bearerToken;
+}
+
 const authorize = (req, res, next) => {
   try {
     // Checking if auth-header is present
-    const authHeader = req.headers.authorization
-    const bearerNotFound = "Authorization header ('Bearer token') not found";
-    if(!authHeader) return res.status(401).json({error: true, message: bearerNotFound});
+    const bearer = extractedBearer( req.headers.authorization );
     
-    // Checking for Bearer declaration
-    if(!authHeader.startsWith("Bearer ")) return res.status(401).json({error: true, message: bearerNotFound});
-    const bearerToken = authHeader.slice(7);
-
-    // Is the token present after the "Bearer" caption
-    if (!bearerToken) return res.status(401).json({error: true, message: bearerNotFound});
-
+    if(!bearer) return res.status(401).json({error: true, message: "Authorization header ('Bearer token') not found"});
+    
     // Verify expiry and signature (expiry auto-checked by verify)
     // Throws error if not valid
-    const decodedJWT = jwt.verify(bearerToken, JWT_SECRET);
+    const decodedJWT = jwt.verify(bearer, JWT_SECRET);
     next();
   } catch (error) {
     //https://www.npmjs.com/package/jsonwebtoken#errors--codes
@@ -34,3 +46,4 @@ const authorize = (req, res, next) => {
 }
 
 export default authorize;
+export { extractedBearer };

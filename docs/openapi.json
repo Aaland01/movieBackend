@@ -1149,7 +1149,7 @@
     "/user/{email}/profile": {
       "put": {
         "description": "Update the profile of a user. A request body containing the profile information to update must be sent. ",
-        "tags": ["Authentication"],
+        "tags": ["Profile"],
         "requestBody": {
           "description": "The profile fields of the user to update.",
           "required": true,
@@ -1294,7 +1294,7 @@
       },
       "get": {
         "description": "Returns a user's profile information as a JSON object",
-        "tags": ["Authentication"],
+        "tags": ["Profile"],
         "parameters": [
           {
             "name": "email",

@@ -19,7 +19,7 @@ router.get('/search', async (req, res, next) => {
     }
     else page = 1;
 
-    const totalQuery = req.db.from('basics');
+    const totalQuery = req.db('basics');
     
     let titleFilter = req.query.title;
     let yearFilter = req.query.year;
@@ -81,9 +81,88 @@ router.get('/search', async (req, res, next) => {
 });
 
 // movies/{imdbID}
-router.get('/data:imdbID', (req, res, next) => {
+router.get('/data/:imdbID', async (req, res, next) => {
   try {
     
+    if (Object.keys(req.query).length > 0) {
+      return res.status(400).json({
+        error:true, 
+        message:`Invalid query parameters: ${Object.keys(req.query)[0]}. Query parameters are not permitted.`
+      })
+    }
+
+    const imdbID = req.params.imdbID;
+
+    const movieQuery = await req.db('basics')
+      .where({tconst: imdbID})
+      .first(
+        "primaryTitle",
+        "year",
+        "runtimeMinutes",
+        "genres",
+        "country",
+        // principals - sep query
+        // ratings:
+        "imdbRating",
+        "rottentomatoesRating",
+        "metacriticRating",
+        "boxoffice",
+        "poster", 
+        "plot"
+      );
+
+    console.log(movieQuery);
+
+    if (!movieQuery) return res.status(404).json({
+      error: true,
+      message: "No record exists of a movie with this ID"
+    });
+
+    const genreList = movieQuery.genres.split(',')
+    const ratings = []
+    if (movieQuery.imdbRating) {
+      ratings.push({
+        "source": "Internet Movie Database",
+        "value": parseFloat(movieQuery.imdbRating)
+      });
+    } if (movieQuery.rottentomatoesRating) {
+      ratings.push({
+        "source": "Rotten Tomatoes",
+        "value": parseFloat(movieQuery.rottentomatoesRating)
+      });
+    } if (movieQuery.metacriticRating) {
+      ratings.push({
+        "source": "Metacritic",
+        "value": parseInt(movieQuery.metacriticRating)
+      });
+    }
+
+    const principalsQuery = await req.db('principals')
+      .where({tconst: imdbID})
+      .orderBy('ordering')
+      .select("ordering", "nconst", "category", "name", "characters");
+
+    const principals = principalsQuery.map(p => (
+      {
+        "id": p.nconst,
+        "category": p.category,
+        "name": p.name,
+        "characters": p.characters ? JSON.parse(p.characters) : []
+      }
+    )); 
+
+    return res.status(200).json({
+      "title": movieQuery.primaryTitle,
+      "year": parseInt(movieQuery.year),
+      "runtime": parseInt(movieQuery.runtimeMinutes),
+      "genres": genreList,
+      "country": movieQuery.country,
+      "principals": principals,
+      "ratings": ratings,
+      "boxoffice": parseInt(movieQuery.boxoffice),
+      "poster": movieQuery.poster,
+      "plot": movieQuery.plot
+    })
   } catch (error) {
     return res.status(500).json({error: "True", message: `Error getting movie data: ${error.message}`})
   }

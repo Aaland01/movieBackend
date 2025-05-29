@@ -111,8 +111,6 @@ router.get('/data/:imdbID', async (req, res, next) => {
         "plot"
       );
 
-    console.log(movieQuery);
-
     if (!movieQuery) return res.status(404).json({
       error: true,
       message: "No record exists of a movie with this ID"

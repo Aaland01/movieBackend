@@ -1,17 +1,11 @@
 import { Router } from 'express';
 const router = Router();
 import authMiddleware from "../middleware/authorisation.js";
+import noParams from "../middleware/noParameters.js";
 
 /* Authenticated route - must handle auth */
-router.get('/:id', authMiddleware, async (req, res, next) => {
+router.get('/:id', authMiddleware, noParams, async (req, res, next) => {
   try {
-
-    if (Object.keys(req.query).length > 0) {
-      return res.status(400).json({
-        error:true, 
-        message:`Invalid query parameters: ${Object.keys(req.query)[0]}. Query parameters are not permitted.`
-      })
-    }
 
     const personID = req.params.id;
     

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import noParams from "../middleware/noParameters.js";
 const router = Router();
 
 // movies/search
@@ -81,15 +82,8 @@ router.get('/search', async (req, res, next) => {
 });
 
 // movies/{imdbID}
-router.get('/data/:imdbID', async (req, res, next) => {
+router.get('/data/:imdbID', noParams, async (req, res, next) => {
   try {
-    
-    if (Object.keys(req.query).length > 0) {
-      return res.status(400).json({
-        error:true, 
-        message:`Invalid query parameters: ${Object.keys(req.query)[0]}. Query parameters are not permitted.`
-      })
-    }
 
     const imdbID = req.params.imdbID;
 

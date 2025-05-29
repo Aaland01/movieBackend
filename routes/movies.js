@@ -33,7 +33,7 @@ router.get('/search', async (req, res, next) => {
     let yearFilter = req.query.year;
     
     if (yearFilter) {
-      if (!yearFilter.test(/^[0-9]{4}$/)) {
+      if (!/^[0-9]{4}$/.test(yearFilter)) {
         return res.status(400).json({error: true, message: "Invalid year format. Format must be yyyy."});
       }
       totalQuery.where({year: yearFilter});
@@ -140,7 +140,6 @@ router.get('/data/:imdbID', noParams, async (req, res, next) => {
 
     const principalsQuery = await req.db('principals')
       .where({tconst: imdbID})
-      .orderBy('ordering')
       .select("ordering", "nconst", "category", "name", "characters");
 
     const principals = principalsQuery.map(p => (

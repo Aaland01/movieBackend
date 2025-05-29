@@ -40,14 +40,14 @@ router.get('/search', async (req, res, next) => {
     }
     if (titleFilter) totalQuery.whereILike('primaryTitle', `%${titleFilter}%`);
 
+    const [{resultsCount}] = await totalQuery.clone().count('* as resultsCount');
+    const results = parseInt(resultsCount);
+
     const moviesQuery = await totalQuery
-      .clone()
       .offset(offset)
       .limit(perPage)
       .select("primaryTitle", "year", "tconst", "imdbRating", "rottenTomatoesRating", "metacriticRating", "rated");
 
-    const [{resultsCount}] = await totalQuery.count('* as resultsCount');
-    const results = parseInt(resultsCount);
     const lastPage = Math.ceil(results / perPage);
     if (nextPage > lastPage) {
       nextPage = null;

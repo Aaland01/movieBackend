@@ -8,9 +8,14 @@ router.get('/search', async (req, res, next) => {
     const perPage = 100;
     let offset = 0;
     let page = req.query.page;
+    let nextPage = 2;
+    let prevPage = null;
+
     if (page) {
       page = parseInt(page)
       offset = perPage * (page - 1)
+      nextPage = page + 1;
+      prevPage = page - 1;
     }
     else page = 1;
 
@@ -31,6 +36,9 @@ router.get('/search', async (req, res, next) => {
     const [{resultsCount}] = await totalQuery.count('* as resultsCount');
     const results = parseInt(resultsCount);
     const lastPage = Math.ceil(results / perPage);
+    if (nextPage > lastPage) {
+      nextPage = null;
+    }
     
     const movies = moviesQuery.map(movie => (
       {
@@ -61,7 +69,9 @@ router.get('/search', async (req, res, next) => {
           "perPage": perPage,
           "currentPage": page,
           "from": offset,
-          "to": to
+          "to": to,
+          "nextPage": nextPage,
+          "prevPage": prevPage
         }
       }
     )

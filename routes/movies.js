@@ -6,12 +6,14 @@ const router = Router();
 // Params: title, year, page
 router.get('/search', async (req, res, next) => {
   try {
+    // Set default values
     const perPage = 100;
     let offset = 0;
     let page = req.query.page;
     let nextPage = 2;
     let prevPage = null;
 
+    // Change values if page argument is provided
     if (page) {
       page = parseInt(page)
       offset = perPage * (page - 1)
@@ -44,22 +46,19 @@ router.get('/search', async (req, res, next) => {
     const movies = moviesQuery.map(movie => (
       {
         "title": movie.primaryTitle,
-        "year": movie.year,
+        "year": parseInt(movie.year),
         "imdbID": movie.tconst,
-        "imdbRating": movie.imdbRating,
-        "rottenTomatoesRating": movie.rottenTomatoesRating,
-        "metacriticRating": movie.metacriticRating,
+        "imdbRating": parseFloat(movie.imdbRating),
+        "rottenTomatoesRating": parseInt(movie.rottenTomatoesRating),
+        "metacriticRating": parseInt(movie.metacriticRating),
         "classification": movie.rated
       }
     ));
 
-    const to = Math.min(movies.length * page, perPage + ((page - 1) * perPage))
-    /**
-     * 1 - min(100,movies.length)             = min(perPage * 1, movies.length + 0 * perPage)
-     * 2 - min(200, movies.length + perPage)  = min(perPage * 2, movies.length + 1 * perPage)
-     * 3 - min(300, movies.length + 2*perPage)= min(perPage * 3, movies.length + 2 * perPage)
-     * n                                      = min(perPage * n, movies.length + n-1 * perPage)
-     */
+    const to = offset + movies.length;
+    // from = offset
+    // deprecated old method:
+    //   const to = Math.min(movies.length * page, perPage + ((page - 1) * perPage))
 
     return res.status(200).json(
       {

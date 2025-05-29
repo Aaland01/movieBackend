@@ -84,7 +84,7 @@ router.post('/login', async (req, res, next) => {
         const bearer_exp = Math.floor(Date.now() / 1000) + bearer_expires_in;
         const refresh_exp = Math.floor(Date.now() / 1000) + refresh_expires_in;
         
-        const bearerToken = jwt.sign({exp: bearer_exp}, JWT_SECRET)
+        const bearerToken = jwt.sign({exp: bearer_exp, email: loginDetails.email}, JWT_SECRET)
         const refreshToken = jwt.sign({exp: refresh_exp, email: loginDetails.email}, JWT_SECRET)
 
         // Storing refresh
@@ -141,7 +141,7 @@ router.post('/refresh', async (req, res, next) => {
     const bearer_exp = Math.floor(Date.now() / 1000) + bearer_expires_in;
     const refresh_exp = Math.floor(Date.now() / 1000) + refresh_expires_in;
     
-    const newBearerToken = jwt.sign({exp: bearer_exp}, JWT_SECRET)
+    const newBearerToken = jwt.sign({exp: bearer_exp, email: decodedJWT.email}, JWT_SECRET)
     const newRefreshToken = jwt.sign({exp: refresh_exp, email: decodedJWT.email}, JWT_SECRET)
 
     await req.db('users')
@@ -206,40 +206,115 @@ router.post('/logout', async (req, res, next) => {
 });
 
 // user/:mail/profil GET
-router.get("/:mail/profile", (req, res, next) => {
+router.get("/:email/profile", noParams, async (req, res, next) => {
   try {
+
     // Check mail parameter
+    const providedEmail = req.params.email;
 
     // Check for user
+    const profileQuery = await req.db('users')
+      .where({email: providedEmail})
+      .first("email", "firstName", "lastName", "dob", "address");
 
+    // No user found - abort
+    if (!profileQuery) return res.status(404).json({
+      error: true,
+      message: "User not found"
+    });
+    
     // Check for authorization
+    const bearerToken = extractedBearer( req.headers.authorization );
+    if (!bearerToken) {
 
-    // Response for when authorized
+      // response for when not authorized
+      return res.status(200).json({
+        "email": profileQuery.email,
+        "firstName": profileQuery.firstName,
+        "lastName": profileQuery.lastName
+      });
+
+    } else {
+
+      const decodedJWT = jwt.verify(bearerToken, JWT_SECRET);
+
+      // Response for when authorized
+      return res.status(200).json({
+        "email": profileQuery.email,
+        "firstName": profileQuery.firstName,
+        "lastName": profileQuery.lastName,
+        "dob": profileQuery.dob,
+        "address": profileQuery.address
+      })  
+    }
 
     // Response for when not authorized
   } catch (error) {
-    res.json({
-      Error: true,
-      Message:`Profile error: ${error.message}`,
-    });
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({error: true, message: 'JWT token has expired'});
+    } else {
+      return res.status(500).json({error: true, message:`Profile error: ${error.message}`});
+    }
   }
 });
+
+
 // user/:mail/profile PUT
-router.put("/:mail/profile", async (req, res, next) => {
+router.put("/:email/profile", authMiddleware, async (req, res, next) => {
   try {
-    // Check for authorization
+       // Get parameters
+    const providedEmail = req.params.email;
+    const profileUpdates = {
+      "firstName" : req.body.firstName,
+      "lastName" : req.body.lastName,
+      "dob": req.body.dob,
+      "address": req.body.address
+    };
+    
+    // Check that all required fields are present
+    if (!profileUpdates.firstName || !profileUpdates.lastName || !profileUpdates.dob || !profileUpdates.address) {
+      return res.status(400).json({error: true, message: "Request body incomplete: firstName, lastName, dob and address are required."});
+    }
 
-    // Check user being updated is the same as being authorized
+    // Base query for the user in question
+    const profileBaseQuery = req.db('users')
+      .where({email: providedEmail});
 
-    // Check body parameters - valid and all present
+    // Check for user
+    const existingUser = await profileBaseQuery.clone().first();
 
-    // Response with updated
+    // No user found - abort
+    if (! existingUser ) return res.status(404).json({
+      error: true,
+      message: "User not found"
+    });
+    
+    // Check user is the same
+    const bearerToken = extractedBearer( req.headers.authorization );
+    const decodedJWT = jwt.verify(bearerToken, JWT_SECRET);
+
+    if (decodedJWT.email === providedEmail) {
+      // Authorized for update
+      await profileBaseQuery.update(profileUpdates);
+
+      const updatedUser = await req.db('users')
+        .where({email: providedEmail})
+        .first("email", "firstName", "lastName", "dob", "address");
+
+      // Response for when authorized
+      return res.status(200).json(updatedUser)
+
+    } else {
+      // Forbidden - not the same user
+      return res.status(403).json({error: true,message: "Forbidden"});
+    }
 
   } catch (error) {
-    res.json({
-      Error: true,
-      Message:`Error during profile update: ${error.message}`,
-    });
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({error: true, message: 'JWT token has expired'});
+    } else {
+      return res.status(500).json({error: true, message:`Profile error: ${error.message}`});
+    }
   }
 });
 

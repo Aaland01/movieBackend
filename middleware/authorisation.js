@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 // Dotenv
 import dotenv from 'dotenv';
 dotenv.config();
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || "f4l1b4c8-69";
 
 /**
  * 
@@ -23,6 +23,49 @@ const extractedBearer = (authHeader) => {
   return bearerToken;
 }
 
+/**
+ * 
+ * @param {string} email Email of the user to generate tokens for
+ * @param {Object} options Config values for tokenexpiries - longExpiry, bearerSeconds & refreshSeconds
+ * @returns JSON containing tokens and expires
+ */
+const tokenGenerator = (email, options = {longExpiry: false, bearerSeconds, refreshSeconds}) => {
+
+  // Standard expiry
+  let bearer_expires_in = 60 * 10; // 10 min
+  let refresh_expires_in = 60 * 60 * 24; // 24 h
+  
+  if (options.longExpiry) {
+    bearer_expires_in = 60 * 60 * 24 * 365; // 1 year
+    refresh_expires_in = 60 * 60 * 24 * 365; // 1 year
+  }
+
+  if (options.bearerSeconds != null) {
+    bearer_expires_in = options.bearerSeconds;
+  } if (options.refreshSeconds != null) {
+    refresh_expires_in = options.refreshSeconds;
+  }
+
+  const bearer_exp = Math.floor(Date.now() / 1000) + bearer_expires_in;
+  const refresh_exp = Math.floor(Date.now() / 1000) + refresh_expires_in;
+  
+  const bearerToken = jwt.sign({exp: bearer_exp, email: email}, JWT_SECRET)
+  const refreshToken = jwt.sign({exp: refresh_exp, email: email}, JWT_SECRET)
+
+  return {
+    "bearerToken": {
+      token: bearerToken,
+      token_type: "Bearer",
+      expires_in: bearer_expires_in,
+    },
+    "refreshToken": {
+      token: refreshToken,
+      token_type: "Refresh",
+      expires_in: refresh_expires_in,
+    },
+  }
+}
+
 const authorize = (handleMalformed) => (req, res, next) => {
   try {
     // Checking if auth-header is present
@@ -33,6 +76,7 @@ const authorize = (handleMalformed) => (req, res, next) => {
     // Verify expiry and signature (expiry auto-checked by verify)
     // Throws error if not valid
     const decodedJWT = jwt.verify(bearer, JWT_SECRET);
+    req.user = decodedJWT.email;
     next();
   } catch (error) {
     //https://www.npmjs.com/package/jsonwebtoken#errors--codes
@@ -52,4 +96,4 @@ const authorize = (handleMalformed) => (req, res, next) => {
 }
 
 export default authorize;
-export { extractedBearer };
+export { extractedBearer, tokenGenerator };

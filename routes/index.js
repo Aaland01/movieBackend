@@ -9,6 +9,7 @@ const { default: swaggerDocument } = await import('../docs/openapi.json', {
 );
 
 /* Swagger docs on "/" route */
-router.use('/', swaggerUI.serve, swaggerUI.setup(swaggerDocument));
+router.use('/', swaggerUI.serve)
+router.get('/', swaggerUI.setup(swaggerDocument));
 
 export default router;

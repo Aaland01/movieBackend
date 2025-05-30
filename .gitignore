@@ -1,3 +1,6 @@
 .env
+*.key
+*.crt
+*.sql
 
 node_modules/

@@ -4,8 +4,7 @@ const knex = {
       host: '127.0.0.1',
       port: 3306,
       database: 'movies',
-      // TODO Need to change user to root before delivery
-      user: 'dev',
+      user: 'root',
       password: 'Cab230!',
       dateStrings: true
     }

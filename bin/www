@@ -3,7 +3,8 @@
 import app from '../app.js';
 import debugImport from 'debug';
 const debug = debugImport('moviebackend:server');
-import http from 'http';
+import https from 'https';
+import fs from 'fs';
 
 
 // Functions
@@ -69,12 +70,15 @@ const port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
 /**
- * Create HTTP server.
+ * Create HTTPS server.
  * 
- * Needs to change to https later - see practical version
  */
 
-const server = http.createServer(app);
+const credentials = {
+  key: fs.readFileSync("selfsigned.key","utf8"),
+  cert: fs.readFileSync("selfsigned.crt","utf8")
+};
+const server = https.createServer(credentials, app);
 
 server.listen(port);
 server.on('error', onError);

@@ -2,7 +2,8 @@ import jwt from 'jsonwebtoken';
 // Dotenv
 import dotenv from 'dotenv';
 dotenv.config();
-const JWT_SECRET = process.env.JWT_SECRET || "f4l1b4c8-69";
+const JWT_SECRET_BEARER = process.env.JWT_SECRET_BEARER || "f4l1b4c8-69";
+const JWT_SECRET_REFRESH = process.env.JWT_SECRET_REFRESH || "f4l1b4c8-96";
 
 /**
  * 
@@ -49,8 +50,8 @@ const tokenGenerator = (email, options = {longExpiry: false, bearerSeconds: null
   const bearer_exp = Math.floor(Date.now() / 1000) + bearer_expires_in;
   const refresh_exp = Math.floor(Date.now() / 1000) + refresh_expires_in;
   
-  const bearerToken = jwt.sign({exp: bearer_exp, email: email}, JWT_SECRET)
-  const refreshToken = jwt.sign({exp: refresh_exp, email: email}, JWT_SECRET)
+  const bearerToken = jwt.sign({exp: bearer_exp, email: email}, JWT_SECRET_BEARER)
+  const refreshToken = jwt.sign({exp: refresh_exp, email: email}, JWT_SECRET_REFRESH)
 
   return {
     "bearerToken": {
@@ -76,7 +77,7 @@ const verifyTokenMiddleware = (handleMalformed) => (req, res, next) => {
   const bearerToken = extractedBearer( req.headers.authorization );
   if(bearerToken){
     try {
-    const decodedJWT = jwt.verify(bearerToken, JWT_SECRET);
+    const decodedJWT = jwt.verify(bearerToken, JWT_SECRET_BEARER);
     req.user = decodedJWT.email;
     req.bearer = bearerToken;
     next();

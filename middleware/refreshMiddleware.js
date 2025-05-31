@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 // Dotenv
 import dotenv from 'dotenv';
 dotenv.config();
-const JWT_SECRET = process.env.JWT_SECRET || "f4l1b4c8-69";
+const JWT_SECRET_REFRESH = process.env.JWT_SECRET_REFRESH || "f4l1b4c8-96";
 /**
  * 
  * Common method for the routes users/refresh and users/logout as they have similar functionality.
@@ -20,7 +20,7 @@ const refreshMiddleware = async (req, res, next) => {
 
   try {
     // Decoding and verifying expiry:
-    const decodedJWT = jwt.verify(refreshToken, JWT_SECRET);
+    const decodedJWT = jwt.verify(refreshToken, JWT_SECRET_REFRESH);
 
     // Checking for refresh for user
     const refreshQuery = await userQuery(decodedJWT.email, req);

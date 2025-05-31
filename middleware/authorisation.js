@@ -29,7 +29,7 @@ const extractedBearer = (authHeader) => {
  * @param {Object} options Config values for tokenexpiries - longExpiry, bearerSeconds & refreshSeconds
  * @returns JSON containing tokens and expires
  */
-const tokenGenerator = (email, options = {longExpiry: false, bearerSeconds, refreshSeconds}) => {
+const tokenGenerator = (email, options = {longExpiry: false, bearerSeconds: null, refreshSeconds: null}) => {
 
   // Standard expiry
   let bearer_expires_in = 60 * 10; // 10 min
@@ -66,34 +66,52 @@ const tokenGenerator = (email, options = {longExpiry: false, bearerSeconds, refr
   }
 }
 
-const authorize = (handleMalformed) => (req, res, next) => {
-  try {
-    // Checking if auth-header is present
-    const bearer = extractedBearer( req.headers.authorization );
-    
-    if(!bearer) return res.status(401).json({error: true, message: "Authorization header ('Bearer token') not found"});
-    
-    // Verify expiry and signature (expiry auto-checked by verify)
-    // Throws error if not valid
-    const decodedJWT = jwt.verify(bearer, JWT_SECRET);
+/**
+ * 
+ * Verifies tokens and updates req.user to be email of that user if token is valid
+ * @param {bool} handleMalformed - Flag for handling specific error of "token malformed"
+ */
+const verifyTokenMiddleware = (handleMalformed) => (req, res, next) => {
+  // Check for authorization
+  const bearerToken = extractedBearer( req.headers.authorization );
+  if(bearerToken){
+    try {
+    const decodedJWT = jwt.verify(bearerToken, JWT_SECRET);
     req.user = decodedJWT.email;
+    req.bearer = bearerToken;
     next();
   } catch (error) {
-    //https://www.npmjs.com/package/jsonwebtoken#errors--codes
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({error: true, message: 'JWT token has expired'});
     } else if (error.message === 'jwt malformed') {
       // Included a silly flag for passing test since /people is not supposed to 
       // handle malformed specifically but /profile routes does. TODO: Remove post-delivery
       return res.status(401).json({error: true, message: handleMalformed ? 'Authorization header is malformed' : 'Invalid JWT token'});
-      
     } else if (error.name === "JsonWebTokenError") {
       return res.status(401).json({error: true, message: 'Invalid JWT token'});
     } else {
       return res.status(500).json({error: true, message: `Authentication Error: ${error.message}`});
     }
   }
+  } else {
+    next();
+  }
 }
 
-export default authorize;
-export { extractedBearer, tokenGenerator };
+/**
+ * A strict middleware for stopping non-authorized access.
+ * 
+ */
+const requireAuthorization = (req, res, next) => {
+  const bearer = req.bearer;
+  
+  if(!bearer) {
+    return res.status(401).json({error: true, message: "Authorization header ('Bearer token') not found"});
+  } else {
+    next();
+  }
+  
+}
+
+export default verifyTokenMiddleware;
+export { requireAuthorization, extractedBearer, tokenGenerator };

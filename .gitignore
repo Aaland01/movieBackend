@@ -1,5 +1,7 @@
 .env
-*.crt
+
 *.key
+*.crt
 *.sql
+
 node_modules/

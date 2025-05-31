@@ -54,7 +54,6 @@ app.use( (err, req, res, next) => {
 
   res.status(err.status || 500);
   res.json({error: "True", message: err.message})
-  console.log("Error handler")
 });
 
 export default app;

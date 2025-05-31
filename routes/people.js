@@ -1,10 +1,10 @@
 import { Router } from 'express';
 const router = Router();
-import authMiddleware from "../middleware/authorisation.js";
+import tokenvalidator, {requireAuthorization} from "../middleware/authorisation.js";
 import noParams from "../middleware/noParameters.js";
 
 /* Authenticated route - must handle auth */
-router.get('/:id', authMiddleware(false), noParams, async (req, res, next) => {
+router.get('/:id', tokenvalidator(false), requireAuthorization, noParams, async (req, res, next) => {
   try {
 
     const personID = req.params.id;

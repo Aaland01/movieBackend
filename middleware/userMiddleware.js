@@ -1,3 +1,4 @@
+import userQuery from "../middleware/userQuery.js";
 /**
  * 
  * Common method for the routes users/login and users/register as they have similar functionality.
@@ -9,20 +10,12 @@ const userMiddleware = async (req, res, next) => {
     if (!req.body.email || !req.body.password){
       return res.status(400).json({error: "True", message:"Request body incomplete, both email and password are required"});
     } 
-
-    req.userDetails = {"email": req.body.email.toLowerCase(), "hash": req.body.password}
-    req.emailQuery = req.db('users')
-      .where({"email": req.userDetails.email});
-    
-    // Check if user exists in table
-    const existingUser = await req.emailQuery
-      .clone()
-      .first();
-
-    req.existingUser = existingUser;
-
+    const normalisedEmail = req.body.email.toLowerCase()
+    req.userDetails = {"email": normalisedEmail, "hash": req.body.password};
+    const query = await userQuery(normalisedEmail, req);
+    req.existingUser = query.existingUser;
+    req.baseQuery = query.baseQuery;
     next();
 }
 
 export default userMiddleware;
-export {}
